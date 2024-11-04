@@ -15,33 +15,39 @@ const TEAM_CONFIG = [
   { sex: 'Boys', age: 'Peewee', team: 'B1 Navy', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551067', rosterUrl: 'https://www.fargohockey.org/roster/show/8551067' }
 ];
 
-const EventCard = ({ event, rosterUrl }) => {
+const EventRow = ({ event, rosterUrl }) => {
   const [showDebug, setShowDebug] = useState(false);
 
   return (
-    <div className="flex flex-col bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition-colors">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-blue-600">
-            {rosterUrl ? (
-              <a 
-                href={rosterUrl} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="flex items-center gap-1 hover:underline"
-              >
-                {event.team}
-                <Users className="h-4 w-4" />
-              </a>
-            ) : (
-              event.team
-            )}
-          </span>
-          <span className="text-gray-600">vs</span>
-          <span className="font-medium">{event.opponent || event.summary}</span>
+    <>
+      <tr className="border-b border-gray-200 last:border-0 hover:bg-gray-50/50 transition-colors">
+        <td className="py-4 px-6">
+          {rosterUrl ? (
+            <a 
+              href={rosterUrl} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="inline-flex items-center gap-1.5 text-blue-600 font-medium hover:text-blue-700"
+            >
+              {event.team}
+              <Users className="h-4 w-4 opacity-75" />
+            </a>
+          ) : (
+            <span className="font-medium">{event.team}</span>
+          )}
+        </td>
+        <td className="py-4 px-6 font-medium">{event.opponent || event.summary}</td>
+        <td className="py-4 px-6 text-gray-600">{event.time}</td>
+        <td className="py-4 px-6 text-gray-600">
+          <div className="inline-flex items-center gap-1.5">
+            <MapPin className="h-4 w-4 text-gray-400" />
+            <span>{event.location}</span>
+          </div>
+        </td>
+        <td className="py-4 px-6 text-right">
           <button 
             onClick={() => setShowDebug(!showDebug)}
-            className="p-1 hover:bg-gray-200 rounded-full"
+            className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
           >
             {showDebug ? (
               <ChevronUp className="h-4 w-4 text-gray-500" />
@@ -49,33 +55,30 @@ const EventCard = ({ event, rosterUrl }) => {
               <ChevronDown className="h-4 w-4 text-gray-500" />
             )}
           </button>
-        </div>
-        <div className="flex items-center gap-4 text-gray-600 mt-2 md:mt-0">
-          <span>{event.time}</span>
-          <div className="flex items-center gap-1">
-            <MapPin className="h-4 w-4" />
-            <span>{event.location}</span>
-          </div>
-        </div>
-      </div>
+        </td>
+      </tr>
       {showDebug && (
-        <div className="mt-2 text-xs font-mono bg-white p-2 rounded border border-gray-200">
-          <div>Original ISO: {event.debug.originalISOString}</div>
-          <div>Original Timezone: {event.debug.originalTimezone}</div>
-          <div>Parsed Central: {event.debug.parsedCentralTime}</div>
-          <div>Computed Date: {event.debug.computedDate}</div>
-          <div>Computed Time: {event.debug.computedTime}</div>
-          <div>Display Date: {event.date}</div>
-          <div>Display Time: {event.time}</div>
-        </div>
+        <tr className="border-b border-gray-200">
+          <td colSpan={5} className="py-3 px-6 bg-gray-50">
+            <div className="text-xs font-mono text-gray-600 space-y-1">
+              <div>Original ISO: {event.debug.originalISOString}</div>
+              <div>Original Timezone: {event.debug.originalTimezone}</div>
+              <div>Parsed Central: {event.debug.parsedCentralTime}</div>
+              <div>Computed Date: {event.debug.computedDate}</div>
+              <div>Computed Time: {event.debug.computedTime}</div>
+              <div>Display Date: {event.date}</div>
+              <div>Display Time: {event.time}</div>
+            </div>
+          </td>
+        </tr>
       )}
-    </div>
+    </>
   );
 };
 
 async function fetchEvents() {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/events`);
+    const response = await fetch('http://localhost:3001/api/events');
     if (!response.ok) {
       throw new Error('Failed to fetch events');
     }
@@ -170,25 +173,30 @@ export default function Home() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-8 bg-gray-50">
-      <Card className="w-full max-w-4xl shadow-lg">
-        <CardHeader className="space-y-4">
-          <CardTitle className="flex items-center gap-2 text-2xl">
-            <Calendar className="h-7 w-7 text-blue-600" />
-            Fargo Freeze Hockey Schedule
-          </CardTitle>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {Object.entries(filterOptions).map(([filterType, options]) => (
+    <main className="min-h-screen bg-gray-50/50 pt-[140px]">
+      {/* Fixed Header with Filters */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-[1400px] mx-auto p-4">
+          <div className="flex items-center gap-3 mb-4">
+            <Calendar className="h-8 w-8 text-blue-600" />
+            <h1 className="text-2xl font-semibold tracking-tight">Fargo Freeze Hockey Schedule</h1>
+          </div>
+          
+          <div className="grid grid-cols-4 gap-6">
+            {/* Gender Filter */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-700">
+                Gender
+              </label>
               <Select 
-                key={filterType}
-                value={filters[filterType]}
-                onValueChange={(value) => handleFilterChange(filterType, value)}
+                value={filters.sex}
+                onValueChange={(value) => handleFilterChange('sex', value)}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder={filterType.charAt(0).toUpperCase() + filterType.slice(1)} />
+                <SelectTrigger className="w-full bg-white">
+                  <SelectValue placeholder="Select Gender" />
                 </SelectTrigger>
                 <SelectContent>
-                  {options.map(option => (
+                  {filterOptions.sex.map(option => (
                     <SelectItem 
                       key={option}
                       value={option}
@@ -198,42 +206,133 @@ export default function Home() {
                   ))}
                 </SelectContent>
               </Select>
-            ))}
-          </div>
-        </CardHeader>
+            </div>
 
-        <CardContent>
-          {loading ? (
-            <div className="flex justify-center items-center p-8">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            {/* Age Group Filter */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-700">
+                Age Group
+              </label>
+              <Select 
+                value={filters.age}
+                onValueChange={(value) => handleFilterChange('age', value)}
+              >
+                <SelectTrigger className="w-full bg-white">
+                  <SelectValue placeholder="Select Age Group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filterOptions.age.map(option => (
+                    <SelectItem 
+                      key={option}
+                      value={option}
+                    >
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          ) : (
-            <div className="space-y-6">
-              {Object.entries(groupedEvents).map(([date, dayEvents]) => (
-                <div key={date} className="border rounded-lg p-4 bg-white shadow-sm">
-                  <h3 className="font-semibold mb-4 text-lg text-gray-800">
+
+            {/* Team Level Filter */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-700">
+                Team Level
+              </label>
+              <Select 
+                value={filters.team}
+                onValueChange={(value) => handleFilterChange('team', value)}
+              >
+                <SelectTrigger className="w-full bg-white">
+                  <SelectValue placeholder="Select Team Level" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filterOptions.team.map(option => (
+                    <SelectItem 
+                      key={option}
+                      value={option}
+                    >
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Location Filter */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-700">
+                Location
+              </label>
+              <Select 
+                value={filters.location}
+                onValueChange={(value) => handleFilterChange('location', value)}
+              >
+                <SelectTrigger className="w-full bg-white">
+                  <SelectValue placeholder="Select Location" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filterOptions.location.map(option => (
+                    <SelectItem 
+                      key={option}
+                      value={option}
+                    >
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-[1400px] mx-auto p-4 md:p-8 space-y-6">
+        {loading ? (
+          <div className="flex justify-center items-center p-12">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {Object.entries(groupedEvents).map(([date, dayEvents]) => (
+              <div key={date} className="bg-white rounded-xl shadow-sm border border-gray-200/50 overflow-hidden">
+                <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                  <h2 className="text-lg font-semibold text-gray-900">
                     {formatEventDate(date)}
-                  </h3>
-                  <div className="space-y-3">
-                    {dayEvents.map(event => (
-                      <EventCard 
-                        key={event.id} 
-                        event={event} 
-                        rosterUrl={getRosterUrl(event.team)} 
-                      />
-                    ))}
-                  </div>
+                  </h2>
                 </div>
-              ))}
-              {Object.keys(groupedEvents).length === 0 && (
-                <div className="text-center p-8 text-gray-500">
-                  No events found matching the selected filters
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="py-3 px-6 text-left text-sm font-semibold text-gray-600">Team</th>
+                        <th className="py-3 px-6 text-left text-sm font-semibold text-gray-600">Event</th>
+                        <th className="py-3 px-6 text-left text-sm font-semibold text-gray-600">Time</th>
+                        <th className="py-3 px-6 text-left text-sm font-semibold text-gray-600">Location</th>
+                        <th className="py-3 px-6 w-20"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dayEvents.map(event => (
+                        <EventRow 
+                          key={event.id} 
+                          event={event} 
+                          rosterUrl={getRosterUrl(event.team)} 
+                        />
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              </div>
+            ))}
+            {Object.keys(groupedEvents).length === 0 && (
+              <div className="text-center p-12 bg-white rounded-xl shadow-sm border border-gray-200/50">
+                <p className="text-gray-500 text-lg">No events found matching the selected filters</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </main>
   );
 }
