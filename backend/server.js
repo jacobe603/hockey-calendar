@@ -3,8 +3,25 @@ import cors from 'cors';
 import fetch from 'node-fetch';
 import ical from 'node-ical';
 
-const app = express();
-app.use(cors());
+
+
+const ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'https://hockey-calendar.vercel.app'  // We'll update this after Vercel deployment
+];
+
+app.use(cors({
+  origin: function(origin, callback) {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (ALLOWED_ORIGINS.indexOf(origin) === -1) {
+      return callback(new Error('The CORS policy for this site does not allow access from the specified Origin.'), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true
+}));
 
 // Team configuration
 const TEAM_CONFIG = [
