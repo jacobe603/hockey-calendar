@@ -3,20 +3,22 @@ import cors from 'cors';
 import fetch from 'node-fetch';
 import ical from 'node-ical';
 
+const app = express();  // Define express app first
 
-
+// CORS configuration
 const ALLOWED_ORIGINS = [
   'http://localhost:3000',
-  'https://hockey-calendar.vercel.app'  // We'll update this after Vercel deployment
+  'https://your-vercel-app.vercel.app'  // We'll update this after Vercel deployment
 ];
 
+// Apply CORS middleware
 app.use(cors({
   origin: function(origin, callback) {
     // allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
     if (ALLOWED_ORIGINS.indexOf(origin) === -1) {
-      return callback(new Error('The CORS policy for this site does not allow access from the specified Origin.'), false);
+      return callback(new Error('CORS not allowed'), false);
     }
     return callback(null, true);
   },
@@ -34,6 +36,24 @@ const TEAM_CONFIG = [
   { sex: 'Boys', age: 'Peewee', team: 'B1 Gray', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551066' },
   { sex: 'Boys', age: 'Peewee', team: 'B1 Navy', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551067' }
 ];
+
+async function fetchCalendarData(icalUrl) {
+  try {
+    const httpsUrl = icalUrl.replace('webcal://', 'https://');
+    const response = await fetch(httpsUrl);
+    const icalData = await response.text();
+    
+    return await new Promise((resolve, reject) => {
+      ical.parseICS(icalData, (error, data) => {
+        if (error) reject(error);
+        else resolve(data);
+      });
+    });
+  } catch (error) {
+    console.error('Error fetching calendar data:', error);
+    return null;
+  }
+}
 
 function processICalEvents(events, teamInfo) {
   const processedEvents = [];
@@ -58,11 +78,11 @@ function processICalEvents(events, teamInfo) {
         hour12: true
       });
       
-      // Create a unique ID by combining multiple fields
+      // Create a unique ID
       const uniqueId = `${uid}_${dateStr}_${timeStr}_${teamInfo.team}`.replace(/\s+/g, '_');
       
       processedEvents.push({
-        id: uniqueId,  // Use the new unique ID
+        id: uniqueId,
         team: `${teamInfo.age} ${teamInfo.team}`,
         age: teamInfo.age,
         sex: teamInfo.sex,
@@ -83,25 +103,6 @@ function processICalEvents(events, teamInfo) {
   }
   
   return processedEvents;
-}
-
-async function fetchCalendarData(icalUrl) {
-  try {
-    // Convert webcal:// to https://
-    const httpsUrl = icalUrl.replace('webcal://', 'https://');
-    const response = await fetch(httpsUrl);
-    const icalData = await response.text();
-    
-    return await new Promise((resolve, reject) => {
-      ical.parseICS(icalData, (error, data) => {
-        if (error) reject(error);
-        else resolve(data);
-      });
-    });
-  } catch (error) {
-    console.error('Error fetching calendar data:', error);
-    return null;
-  }
 }
 
 app.get('/api/events', async (req, res) => {
@@ -130,7 +131,8 @@ app.get('/api/events', async (req, res) => {
   }
 });
 
+// Listen on the port Render provides or 3001 for local development
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
