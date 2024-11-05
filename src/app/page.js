@@ -1,8 +1,8 @@
 'use client'
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Loader2, MapPin, Users, ChevronDown, ChevronUp } from 'lucide-react';
+import { Calendar, Loader2, MapPin, Users, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 
 const TEAM_CONFIG = [
   { sex: 'Boys', age: 'Bantam', team: 'AA', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551014', rosterUrl: 'https://www.fargohockey.org/roster/show/8551014' },
@@ -14,6 +14,50 @@ const TEAM_CONFIG = [
   { sex: 'Boys', age: 'Peewee', team: 'B1 Gray', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551066', rosterUrl: 'https://www.fargohockey.org/roster/show/8551066' },
   { sex: 'Boys', age: 'Peewee', team: 'B1 Navy', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551067', rosterUrl: 'https://www.fargohockey.org/roster/show/8551067' }
 ];
+
+// Debounce utility function
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+// Optimized Select Component
+const FilterSelect = React.memo(({ label, value, options, onChange }) => {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-sm font-medium text-gray-700">
+        {label}
+      </label>
+      <Select 
+        value={value}
+        onValueChange={onChange}
+      >
+        <SelectTrigger className="w-full bg-white">
+          <SelectValue placeholder={`Select ${label}`} />
+        </SelectTrigger>
+        <SelectContent className="max-h-[300px] overflow-y-auto">
+          {options.map(option => (
+            <SelectItem 
+              key={option}
+              value={option}
+            >
+              {option}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+});
+
+FilterSelect.displayName = 'FilterSelect';
 
 const EventRow = ({ event, rosterUrl }) => {
   const [showDebug, setShowDebug] = useState(false);
@@ -78,14 +122,7 @@ const EventRow = ({ event, rosterUrl }) => {
 
 async function fetchEvents() {
   try {
-    const response = await fetch('https://hockey-calendar.onrender.com/api/events', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include'
-    });
-    
+    const response = await fetch('http://localhost:3001/api/events');
     if (!response.ok) {
       throw new Error('Failed to fetch events');
     }
@@ -112,6 +149,7 @@ function formatEventDate(dateString) {
 export default function Home() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showPastEvents, setShowPastEvents] = useState(false);
   const [filters, setFilters] = useState({
     sex: 'All',
     age: 'All',
@@ -145,8 +183,50 @@ export default function Home() {
     };
   }, [events]);
 
+  const debouncedFilterChange = useCallback(
+    debounce((filterType, value) => {
+      setFilters(prev => ({
+        ...prev,
+        [filterType]: value
+      }));
+    }, 150),
+    []
+  );
+
+  const filterControls = useMemo(() => [
+    {
+      label: 'Gender',
+      type: 'sex',
+      options: filterOptions.sex
+    },
+    {
+      label: 'Age Group',
+      type: 'age',
+      options: filterOptions.age
+    },
+    {
+      label: 'Team Level',
+      type: 'team',
+      options: filterOptions.team
+    },
+    {
+      label: 'Location',
+      type: 'location',
+      options: filterOptions.location
+    }
+  ], [filterOptions]);
+
   const filteredEvents = useMemo(() => {
     return events.filter(event => {
+      // Filter past events
+      if (!showPastEvents) {
+        const eventDate = new Date(event.date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (eventDate < today) return false;
+      }
+
+      // Apply other filters
       const matchSex = filters.sex === 'All' || event.sex === filters.sex;
       const matchAge = filters.age === 'All' || event.age === filters.age;
       const matchTeam = filters.team === 'All' || event.team.includes(filters.team);
@@ -154,7 +234,7 @@ export default function Home() {
       
       return matchSex && matchAge && matchTeam && matchLocation;
     });
-  }, [events, filters]);
+  }, [events, filters, showPastEvents]);
 
   const groupedEvents = useMemo(() => {
     return filteredEvents.reduce((acc, event) => {
@@ -165,13 +245,6 @@ export default function Home() {
     }, {});
   }, [filteredEvents]);
 
-  const handleFilterChange = (filterType, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [filterType]: value
-    }));
-  };
-
   const getRosterUrl = (teamName) => {
     const teamConfig = TEAM_CONFIG.find(config => 
       `${config.age} ${config.team}` === teamName
@@ -180,120 +253,41 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50/50 pt-[140px]">
-      {/* Fixed Header with Filters */}
+    <main className="min-h-screen bg-gray-50/50 pt-[180px]">
       <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-[1400px] mx-auto p-4">
-          <div className="flex items-center gap-3 mb-4">
-            <Calendar className="h-8 w-8 text-blue-600" />
-            <h1 className="text-2xl font-semibold tracking-tight">Fargo Freeze Hockey Schedule</h1>
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3">
+              <Calendar className="h-8 w-8 text-blue-600" />
+              <h1 className="text-2xl font-semibold tracking-tight">Fargo Freeze Hockey Schedule</h1>
+            </div>
+            <button
+              onClick={() => setShowPastEvents(!showPastEvents)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
+                showPastEvents 
+                  ? 'bg-blue-50 border-blue-200 text-blue-700' 
+                  : 'bg-white border-gray-200 text-gray-600'
+              }`}
+            >
+              <Clock className="h-4 w-4" />
+              {showPastEvents ? 'Showing Past Events' : 'Hide Past Events'}
+            </button>
           </div>
           
-          <div className="grid grid-cols-4 gap-6">
-            {/* Gender Filter */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">
-                Gender
-              </label>
-              <Select 
-                value={filters.sex}
-                onValueChange={(value) => handleFilterChange('sex', value)}
-              >
-                <SelectTrigger className="w-full bg-white">
-                  <SelectValue placeholder="Select Gender" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filterOptions.sex.map(option => (
-                    <SelectItem 
-                      key={option}
-                      value={option}
-                    >
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Age Group Filter */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">
-                Age Group
-              </label>
-              <Select 
-                value={filters.age}
-                onValueChange={(value) => handleFilterChange('age', value)}
-              >
-                <SelectTrigger className="w-full bg-white">
-                  <SelectValue placeholder="Select Age Group" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filterOptions.age.map(option => (
-                    <SelectItem 
-                      key={option}
-                      value={option}
-                    >
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Team Level Filter */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">
-                Team Level
-              </label>
-              <Select 
-                value={filters.team}
-                onValueChange={(value) => handleFilterChange('team', value)}
-              >
-                <SelectTrigger className="w-full bg-white">
-                  <SelectValue placeholder="Select Team Level" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filterOptions.team.map(option => (
-                    <SelectItem 
-                      key={option}
-                      value={option}
-                    >
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Location Filter */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">
-                Location
-              </label>
-              <Select 
-                value={filters.location}
-                onValueChange={(value) => handleFilterChange('location', value)}
-              >
-                <SelectTrigger className="w-full bg-white">
-                  <SelectValue placeholder="Select Location" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filterOptions.location.map(option => (
-                    <SelectItem 
-                      key={option}
-                      value={option}
-                    >
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {filterControls.map(control => (
+              <FilterSelect
+                key={control.type}
+                label={control.label}
+                value={filters[control.type]}
+                options={control.options}
+                onChange={(value) => debouncedFilterChange(control.type, value)}
+              />
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="max-w-[1400px] mx-auto p-4 md:p-8 space-y-6">
         {loading ? (
           <div className="flex justify-center items-center p-12">
@@ -322,7 +316,7 @@ export default function Home() {
                     <tbody>
                       {dayEvents.map(event => (
                         <EventRow 
-                          key={event.id} 
+                          key={`${event.id}_${event.date}_${event.time}`}
                           event={event} 
                           rosterUrl={getRosterUrl(event.team)} 
                         />
@@ -334,7 +328,8 @@ export default function Home() {
             ))}
             {Object.keys(groupedEvents).length === 0 && (
               <div className="text-center p-12 bg-white rounded-xl shadow-sm border border-gray-200/50">
-                <p className="text-gray-500 text-lg">No events found matching the selected filters</p>
+                <p className="text-gray-500 text-lg">No events found matching your filters</p>
+                <p className="text-gray-400 mt-2">Try adjusting your filter criteria or toggle past events to see more results</p>
               </div>
             )}
           </div>
