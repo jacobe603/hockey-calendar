@@ -8,7 +8,8 @@ const app = express();  // Define express app first
 // CORS configuration
 const ALLOWED_ORIGINS = [
   'http://localhost:3000',
-  'https://your-vercel-app.vercel.app'  // We'll update this after Vercel deployment
+  'https://hockey-calendar.vercel.app',  // Add your Vercel domain
+  'https://hockey-calendar.onrender.com'
 ];
 
 // Apply CORS middleware
