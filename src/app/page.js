@@ -192,10 +192,22 @@ export default function Home() {
   }, [events, filters, showPastEvents]);
 
   const groupedEvents = useMemo(() => {
+    const timeToMinutes = (timeStr) => {
+      const [time, period] = timeStr.split(' ');
+      let [hours, minutes] = time.split(':').map(Number);
+      if (period === 'PM' && hours !== 12) hours += 12;
+      if (period === 'AM' && hours === 12) hours = 0;
+      return hours * 60 + minutes;
+    };
+  
     return filteredEvents.reduce((acc, event) => {
       const date = event.date;
-      if (!acc[date]) acc[date] = [];
+      if (!acc[date]) {
+        acc[date] = [];
+      }
       acc[date].push(event);
+      // Sort events within each day by time
+      acc[date].sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
       return acc;
     }, {});
   }, [filteredEvents]);

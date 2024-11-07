@@ -125,7 +125,6 @@ function processICalEvents(events, teamInfo) {
 
 app.get('/api/events', async (req, res) => {
   try {
-    // Fetch all calendars
     const allEvents = [];
     for (const team of TEAM_CONFIG) {
       const icalEvents = await fetchCalendarData(team.icalUrl);
@@ -139,7 +138,7 @@ app.get('/api/events', async (req, res) => {
     allEvents.sort((a, b) => {
       const dateCompare = a.date.localeCompare(b.date);
       if (dateCompare !== 0) return dateCompare;
-      return a.time.localeCompare(b.time);
+      return timeToMinutes(a.time) - timeToMinutes(b.time);
     });
 
     res.json(allEvents);
@@ -153,3 +152,11 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+const timeToMinutes = (timeStr) => {
+  const [time, period] = timeStr.split(' ');
+  let [hours, minutes] = time.split(':').map(Number);
+  if (period === 'PM' && hours !== 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+  return hours * 60 + minutes;
+};
