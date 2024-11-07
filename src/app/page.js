@@ -80,7 +80,6 @@ function formatEventDate(dateString) {
   });
 }
 
-// Optimized Select Component
 const FilterSelect = React.memo(({ label, type, options, value, onChange, placeholder, className = "" }) => {
   return (
     <div className={`space-y-1.5 ${className}`}>
@@ -167,18 +166,20 @@ export default function Home() {
 
   const filteredEvents = useMemo(() => {
     return events.filter(event => {
-      // Get start of current day
+      // Get the start of yesterday
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
       
       const eventDate = new Date(event.date);
       eventDate.setHours(0, 0, 0, 0);
-
-      // Filter past events
-      if (!showPastEvents && eventDate < today) {
+  
+      // Filter past events, but include yesterday
+      if (!showPastEvents && eventDate < yesterday) {
         return false;
       }
-
+  
       // Apply other filters
       const matchEventType = filters.eventType === 'All' || event.eventType === filters.eventType;
       const matchSex = filters.sex === 'All' || event.sex === filters.sex;
