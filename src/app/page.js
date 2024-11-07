@@ -94,7 +94,7 @@ const FilterSelect = React.memo(({ label, type, options, value, onChange, placeh
         <SelectTrigger className="w-full bg-white">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
-        <SelectContent className="max-h-[300px] overflow-y-auto">
+        <SelectContent>
           {options.map(option => (
             <SelectItem 
               key={option}
@@ -208,35 +208,39 @@ export default function Home() {
 
   const filterControls = useMemo(() => [
     {
-      label: 'Event Type',
+      label: 'Type',  // Shortened from 'Event Type'
       type: 'eventType',
       options: filterOptions.eventType,
-      placeholder: 'Select Event Type',
-      className: 'md:col-span-2 bg-blue-50/50 p-4 rounded-lg' // Make event type filter more prominent
+      placeholder: 'Select Type',
+      className: 'w-32' // Width for short list (All, Game, Practice)
     },
     {
       label: 'Program',
       type: 'sex',
       options: filterOptions.sex,
-      placeholder: 'Select Program'
+      placeholder: 'Select Program',
+      className: 'w-36' // Width for Boys/Girls
     },
     {
-      label: 'Age Group',
+      label: 'Age',
       type: 'age',
       options: filterOptions.age,
-      placeholder: 'Select Age Group'
+      placeholder: 'Select Age',
+      className: 'w-36' // Width for age groups
     },
     {
-      label: 'Team Level',
+      label: 'Team',
       type: 'team',
       options: filterOptions.team,
-      placeholder: 'Select Team Level'
+      placeholder: 'Select Team',
+      className: 'w-40' // Width for team levels (AA, A, B1 Gray, etc.)
     },
     {
       label: 'Location',
       type: 'location',
       options: filterOptions.location,
-      placeholder: 'Select Location'
+      placeholder: 'Select Location',
+      className: 'flex-1 min-w-[200px]' // Location gets remaining space
     }
   ], [filterOptions]);
 
@@ -268,7 +272,7 @@ export default function Home() {
             </button>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+          <div className="flex flex-wrap gap-4">
             {filterControls.map(control => (
               <FilterSelect
                 key={control.type}
