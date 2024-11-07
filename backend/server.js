@@ -28,15 +28,28 @@ app.use(cors({
 
 // Team configuration
 const TEAM_CONFIG = [
-  { sex: 'Boys', age: 'Bantam', team: 'AA', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551014' },
-  { sex: 'Boys', age: 'Bantam', team: 'A', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551013' },
-  { sex: 'Boys', age: 'Bantam', team: 'B1 Gray', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551019' },
-  { sex: 'Boys', age: 'Bantam', team: 'B1 Navy', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551020' },
-  { sex: 'Boys', age: 'Peewee', team: 'AA', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551060' },
-  { sex: 'Boys', age: 'Peewee', team: 'A', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551058' },
-  { sex: 'Boys', age: 'Peewee', team: 'B1 Gray', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551066' },
-  { sex: 'Boys', age: 'Peewee', team: 'B1 Navy', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551067' }
+  { sex: 'Boys', age: 'Bantam', team: 'AA', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551014', rosterUrl: 'https://www.fargohockey.org/roster/show/8551014?subseason=926726' },
+  { sex: 'Boys', age: 'Bantam', team: 'A', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551013', rosterUrl: 'https://www.fargohockey.org/roster/show/8551013?subseason=926726' },
+  { sex: 'Boys', age: 'Bantam', team: 'B1 Gray', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551019', rosterUrl: 'https://www.fargohockey.org/roster/show/8551019?subseason=926726' },
+  { sex: 'Boys', age: 'Bantam', team: 'B1 Navy', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551020', rosterUrl: 'https://www.fargohockey.org/roster/show/8551020?subseason=926726' },
+  { sex: 'Boys', age: 'Peewee', team: 'AA', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551060', rosterUrl: 'https://www.fargohockey.org/roster/show/8551060?subseason=926726' },
+  { sex: 'Boys', age: 'Peewee', team: 'A', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551058', rosterUrl: 'https://www.fargohockey.org/roster/show/8551058?subseason=926726' },
+  { sex: 'Boys', age: 'Peewee', team: 'B1 Gray', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551066', rosterUrl: 'https://www.fargohockey.org/roster/show/8551066?subseason=926726' },
+  { sex: 'Boys', age: 'Peewee', team: 'B1 Navy', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551067', rosterUrl: 'https://www.fargohockey.org/roster/show/8551067?subseason=926726' },
+  { sex: 'Girls', age: '12U', team: 'A', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8550998', rosterUrl: 'https://www.fargohockey.org/roster/show/8550998?subseason=926726' },
+  { sex: 'Girls', age: '15U', team: 'A', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551002', rosterUrl: 'https://www.fargohockey.org/roster/show/8551002?subseason=926726' }
 ];
+
+function getEventType(description) {
+  if (!description) return 'Unknown';
+  // Check for game vs practice in the URL
+  if (description.includes('sportsengine%3A%2F%2Fgame')) {
+    return 'Game';
+  } else if (description.includes('sportsengine%3A%2F%2Fevent')) {
+    return 'Practice';
+  }
+  return 'Other';
+}
 
 async function fetchCalendarData(icalUrl) {
   try {
@@ -82,6 +95,9 @@ function processICalEvents(events, teamInfo) {
       // Create a unique ID
       const uniqueId = `${uid}_${dateStr}_${timeStr}_${teamInfo.team}`.replace(/\s+/g, '_');
       
+      // Determine event type
+      const eventType = getEventType(event.description);
+      
       processedEvents.push({
         id: uniqueId,
         team: `${teamInfo.age} ${teamInfo.team}`,
@@ -92,6 +108,7 @@ function processICalEvents(events, teamInfo) {
         summary: event.summary,
         location: event.location || 'TBD',
         description: event.description || '',
+        eventType: eventType,
         debug: {
           originalISOString: originalStart.toISOString(),
           originalTimezone: originalStart.tz || 'UTC',
@@ -132,7 +149,6 @@ app.get('/api/events', async (req, res) => {
   }
 });
 
-// Listen on the port Render provides or 3001 for local development
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);

@@ -2,134 +2,61 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Loader2, MapPin, Users, ChevronDown, ChevronUp, Clock } from 'lucide-react';
+import { Calendar, Loader2, MapPin, Users, Disc, Bell } from 'lucide-react';
 
 const TEAM_CONFIG = [
-  { sex: 'Boys', age: 'Bantam', team: 'AA', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551014', rosterUrl: 'https://www.fargohockey.org/roster/show/8551014' },
-  { sex: 'Boys', age: 'Bantam', team: 'A', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551013', rosterUrl: 'https://www.fargohockey.org/roster/show/8551013' },
-  { sex: 'Boys', age: 'Bantam', team: 'B1 Gray', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551019', rosterUrl: 'https://www.fargohockey.org/roster/show/8551019' },
-  { sex: 'Boys', age: 'Bantam', team: 'B1 Navy', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551020', rosterUrl: 'https://www.fargohockey.org/roster/show/8551020' },
-  { sex: 'Boys', age: 'Peewee', team: 'AA', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551060', rosterUrl: 'https://www.fargohockey.org/roster/show/8551060' },
-  { sex: 'Boys', age: 'Peewee', team: 'A', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551058', rosterUrl: 'https://www.fargohockey.org/roster/show/8551058' },
-  { sex: 'Boys', age: 'Peewee', team: 'B1 Gray', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551066', rosterUrl: 'https://www.fargohockey.org/roster/show/8551066' },
-  { sex: 'Boys', age: 'Peewee', team: 'B1 Navy', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551067', rosterUrl: 'https://www.fargohockey.org/roster/show/8551067' }
+  { sex: 'Boys', age: 'Bantam', team: 'AA', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551014', rosterUrl: 'https://www.fargohockey.org/roster/show/8551014?subseason=926726' },
+  { sex: 'Boys', age: 'Bantam', team: 'A', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551013', rosterUrl: 'https://www.fargohockey.org/roster/show/8551013?subseason=926726' },
+  { sex: 'Boys', age: 'Bantam', team: 'B1 Gray', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551019', rosterUrl: 'https://www.fargohockey.org/roster/show/8551019?subseason=926726' },
+  { sex: 'Boys', age: 'Bantam', team: 'B1 Navy', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551020', rosterUrl: 'https://www.fargohockey.org/roster/show/8551020?subseason=926726' },
+  { sex: 'Boys', age: 'Peewee', team: 'AA', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551060', rosterUrl: 'https://www.fargohockey.org/roster/show/8551060?subseason=926726' },
+  { sex: 'Boys', age: 'Peewee', team: 'A', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551058', rosterUrl: 'https://www.fargohockey.org/roster/show/8551058?subseason=926726' },
+  { sex: 'Boys', age: 'Peewee', team: 'B1 Gray', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551066', rosterUrl: 'https://www.fargohockey.org/roster/show/8551066?subseason=926726' },
+  { sex: 'Boys', age: 'Peewee', team: 'B1 Navy', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551067', rosterUrl: 'https://www.fargohockey.org/roster/show/8551067?subseason=926726' },
+  { sex: 'Girls', age: '12U', team: 'A', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8550998', rosterUrl: 'https://www.fargohockey.org/roster/show/8550998?subseason=926726' },
+  { sex: 'Girls', age: '15U', team: 'A', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551002', rosterUrl: 'https://www.fargohockey.org/roster/show/8551002?subseason=926726' }
 ];
 
-// Debounce utility function
-function debounce(func, wait) {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-}
-
-// Optimized Select Component
-const FilterSelect = React.memo(({ label, value, options, onChange }) => {
-  return (
-    <div className="space-y-1.5">
-      <label className="text-sm font-medium text-gray-700">
-        {label}
-      </label>
-      <Select 
-        value={value}
-        onValueChange={onChange}
-      >
-        <SelectTrigger className="w-full bg-white">
-          <SelectValue placeholder={`Select ${label}`} />
-        </SelectTrigger>
-        <SelectContent className="max-h-[300px] overflow-y-auto">
-          {options.map(option => (
-            <SelectItem 
-              key={option}
-              value={option}
-            >
-              {option}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-});
-
-FilterSelect.displayName = 'FilterSelect';
-
 const EventRow = ({ event, rosterUrl }) => {
-  const [showDebug, setShowDebug] = useState(false);
-
+  const isGame = event.eventType === 'Game';
+  
   return (
-    <>
-      <tr className="border-b border-gray-200 last:border-0 hover:bg-gray-50/50 transition-colors">
-        <td className="py-4 px-6">
-          {rosterUrl ? (
-            <a 
-              href={rosterUrl} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="inline-flex items-center gap-1.5 text-blue-600 font-medium hover:text-blue-700"
-            >
-              {event.team}
-              <Users className="h-4 w-4 opacity-75" />
-            </a>
-          ) : (
-            <span className="font-medium">{event.team}</span>
-          )}
-        </td>
-        <td className="py-4 px-6 font-medium">{event.opponent || event.summary}</td>
-        <td className="py-4 px-6 text-gray-600">{event.time}</td>
-        <td className="py-4 px-6 text-gray-600">
-          <div className="inline-flex items-center gap-1.5">
-            <MapPin className="h-4 w-4 text-gray-400" />
-            <span>{event.location}</span>
-          </div>
-        </td>
-        <td className="py-4 px-6 text-right">
-          <button 
-            onClick={() => setShowDebug(!showDebug)}
-            className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+    <tr className="border-b border-gray-200 last:border-0 hover:bg-gray-50/50 transition-colors">
+      <td className="py-4 px-6">
+        {rosterUrl ? (
+          <a 
+            href={rosterUrl} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="inline-flex items-center gap-1.5 text-blue-600 font-medium hover:text-blue-700"
           >
-            {showDebug ? (
-              <ChevronUp className="h-4 w-4 text-gray-500" />
-            ) : (
-              <ChevronDown className="h-4 w-4 text-gray-500" />
-            )}
-          </button>
-        </td>
-      </tr>
-      {showDebug && (
-        <tr className="border-b border-gray-200">
-          <td colSpan={5} className="py-3 px-6 bg-gray-50">
-            <div className="text-xs font-mono text-gray-600 space-y-1">
-              <div>Original ISO: {event.debug.originalISOString}</div>
-              <div>Original Timezone: {event.debug.originalTimezone}</div>
-              <div>Parsed Central: {event.debug.parsedCentralTime}</div>
-              <div>Computed Date: {event.debug.computedDate}</div>
-              <div>Computed Time: {event.debug.computedTime}</div>
-              <div>Display Date: {event.date}</div>
-              <div>Display Time: {event.time}</div>
-            </div>
-          </td>
-        </tr>
-      )}
-    </>
+            {event.team}
+            <Users className="h-4 w-4 opacity-75" />
+          </a>
+        ) : (
+          <span className="font-medium">{event.team}</span>
+        )}
+      </td>
+      <td className="py-4 px-6">
+        <div className={`inline-flex items-center gap-2 font-medium ${isGame ? 'text-blue-800' : 'text-blue-400'}`}>
+          {isGame ? <Disc className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+          <span>{event.summary}</span>
+        </div>
+      </td>
+      <td className="py-4 px-6 text-gray-600">{event.time}</td>
+      <td className="py-4 px-6 text-gray-600">
+        <div className="inline-flex items-center gap-1.5">
+          <MapPin className="h-4 w-4 text-gray-400" />
+          <span>{event.location}</span>
+        </div>
+      </td>
+    </tr>
   );
 };
 
 async function fetchEvents() {
   try {
-    const response = await fetch('https://hockey-calendar.onrender.com/api/events', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include'
-    });
-    
+    const response = await fetch('http://localhost:3001/api/events');
     if (!response.ok) {
       throw new Error('Failed to fetch events');
     }
@@ -153,11 +80,43 @@ function formatEventDate(dateString) {
   });
 }
 
+// Optimized Select Component
+const FilterSelect = React.memo(({ label, type, options, value, onChange, placeholder, className = "" }) => {
+  return (
+    <div className={`space-y-1.5 ${className}`}>
+      <label className="text-sm font-medium text-gray-700">
+        {label}
+      </label>
+      <Select 
+        value={value}
+        onValueChange={onChange}
+      >
+        <SelectTrigger className="w-full bg-white">
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent className="max-h-[300px] overflow-y-auto">
+          {options.map(option => (
+            <SelectItem 
+              key={option}
+              value={option}
+            >
+              {option}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+});
+
+FilterSelect.displayName = 'FilterSelect';
+
 export default function Home() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showPastEvents, setShowPastEvents] = useState(false);
   const [filters, setFilters] = useState({
+    eventType: 'All',
     sex: 'All',
     age: 'All',
     team: 'All',
@@ -181,65 +140,53 @@ export default function Home() {
   }, []);
 
   const filterOptions = useMemo(() => {
+    // Get unique values while preserving order for key categories
+    const eventTypes = ['All', 'Game', 'Practice'];
+    const sexOptions = ['All', ...new Set(TEAM_CONFIG.map(team => team.sex))];
+    
+    // Custom sort function for age groups
+    const ageOrder = ['Peewee', '12U', 'Bantam', '15U'];
+    const ageOptions = ['All', ...new Set(TEAM_CONFIG.map(team => team.age))]
+      .sort((a, b) => {
+        if (a === 'All') return -1;
+        if (b === 'All') return 1;
+        return ageOrder.indexOf(a) - ageOrder.indexOf(b);
+      });
+
+    const teamLevels = ['All', ...new Set(TEAM_CONFIG.map(team => team.team))];
     const locations = new Set(events.filter(e => e.location).map(e => e.location));
+
     return {
-      sex: ['All', ...new Set(TEAM_CONFIG.map(team => team.sex))],
-      age: ['All', ...new Set(TEAM_CONFIG.map(team => team.age))],
-      team: ['All', ...new Set(TEAM_CONFIG.map(team => team.team))],
+      eventType: eventTypes,
+      sex: sexOptions,
+      age: ageOptions,
+      team: teamLevels,
       location: ['All', ...Array.from(locations).sort()]
     };
   }, [events]);
 
-  const debouncedFilterChange = useCallback(
-    debounce((filterType, value) => {
-      setFilters(prev => ({
-        ...prev,
-        [filterType]: value
-      }));
-    }, 150),
-    []
-  );
-
-  const filterControls = useMemo(() => [
-    {
-      label: 'Gender',
-      type: 'sex',
-      options: filterOptions.sex
-    },
-    {
-      label: 'Age Group',
-      type: 'age',
-      options: filterOptions.age
-    },
-    {
-      label: 'Team Level',
-      type: 'team',
-      options: filterOptions.team
-    },
-    {
-      label: 'Location',
-      type: 'location',
-      options: filterOptions.location
-    }
-  ], [filterOptions]);
-
   const filteredEvents = useMemo(() => {
     return events.filter(event => {
+      // Get start of current day
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const eventDate = new Date(event.date);
+      eventDate.setHours(0, 0, 0, 0);
+
       // Filter past events
-      if (!showPastEvents) {
-        const eventDate = new Date(event.date);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        if (eventDate < today) return false;
+      if (!showPastEvents && eventDate < today) {
+        return false;
       }
 
       // Apply other filters
+      const matchEventType = filters.eventType === 'All' || event.eventType === filters.eventType;
       const matchSex = filters.sex === 'All' || event.sex === filters.sex;
       const matchAge = filters.age === 'All' || event.age === filters.age;
       const matchTeam = filters.team === 'All' || event.team.includes(filters.team);
       const matchLocation = filters.location === 'All' || event.location === filters.location;
       
-      return matchSex && matchAge && matchTeam && matchLocation;
+      return matchEventType && matchSex && matchAge && matchTeam && matchLocation;
     });
   }, [events, filters, showPastEvents]);
 
@@ -259,6 +206,47 @@ export default function Home() {
     return teamConfig?.rosterUrl;
   };
 
+  const filterControls = useMemo(() => [
+    {
+      label: 'Event Type',
+      type: 'eventType',
+      options: filterOptions.eventType,
+      placeholder: 'Select Event Type',
+      className: 'md:col-span-2 bg-blue-50/50 p-4 rounded-lg' // Make event type filter more prominent
+    },
+    {
+      label: 'Program',
+      type: 'sex',
+      options: filterOptions.sex,
+      placeholder: 'Select Program'
+    },
+    {
+      label: 'Age Group',
+      type: 'age',
+      options: filterOptions.age,
+      placeholder: 'Select Age Group'
+    },
+    {
+      label: 'Team Level',
+      type: 'team',
+      options: filterOptions.team,
+      placeholder: 'Select Team Level'
+    },
+    {
+      label: 'Location',
+      type: 'location',
+      options: filterOptions.location,
+      placeholder: 'Select Location'
+    }
+  ], [filterOptions]);
+
+  const handleFilterChange = (filterType, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterType]: value
+    }));
+  };
+
   return (
     <main className="min-h-screen bg-gray-50/50 pt-[180px]">
       <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm">
@@ -276,19 +264,20 @@ export default function Home() {
                   : 'bg-white border-gray-200 text-gray-600'
               }`}
             >
-              <Clock className="h-4 w-4" />
               {showPastEvents ? 'Showing Past Events' : 'Hide Past Events'}
             </button>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             {filterControls.map(control => (
               <FilterSelect
                 key={control.type}
                 label={control.label}
                 value={filters[control.type]}
                 options={control.options}
-                onChange={(value) => debouncedFilterChange(control.type, value)}
+                onChange={(value) => handleFilterChange(control.type, value)}
+                placeholder={control.placeholder}
+                className={control.className}
               />
             ))}
           </div>
@@ -317,7 +306,6 @@ export default function Home() {
                         <th className="py-3 px-6 text-left text-sm font-semibold text-gray-600">Event</th>
                         <th className="py-3 px-6 text-left text-sm font-semibold text-gray-600">Time</th>
                         <th className="py-3 px-6 text-left text-sm font-semibold text-gray-600">Location</th>
-                        <th className="py-3 px-6 w-20"></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -335,8 +323,7 @@ export default function Home() {
             ))}
             {Object.keys(groupedEvents).length === 0 && (
               <div className="text-center p-12 bg-white rounded-xl shadow-sm border border-gray-200/50">
-                <p className="text-gray-500 text-lg">No events found matching your filters</p>
-                <p className="text-gray-400 mt-2">Try adjusting your filter criteria or toggle past events to see more results</p>
+                <p className="text-gray-500 text-lg">No events found matching the selected filters</p>
               </div>
             )}
           </div>
