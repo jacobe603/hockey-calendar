@@ -22,7 +22,7 @@ const EventRow = ({ event, rosterUrl }) => {
   
   return (
     <tr className="border-b border-gray-200 last:border-0 hover:bg-gray-50/50 transition-colors">
-      <td className="py-4 px-6">
+      <td className="py-4 px-6 whitespace-nowrap">
         {rosterUrl ? (
           <a 
             href={rosterUrl} 
@@ -43,11 +43,11 @@ const EventRow = ({ event, rosterUrl }) => {
           <span>{event.summary}</span>
         </div>
       </td>
-      <td className="py-4 px-6 text-gray-600">{event.time}</td>
+      <td className="py-4 px-6 text-gray-600 whitespace-nowrap">{event.time}</td>
       <td className="py-4 px-6 text-gray-600">
         <div className="inline-flex items-center gap-1.5">
           <MapPin className="h-4 w-4 text-gray-400" />
-          <span>{event.location}</span>
+          <span className="truncate">{event.location}</span>
         </div>
       </td>
     </tr>
@@ -304,12 +304,18 @@ export default function Home() {
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
+                    <colgroup>
+                      <col className="w-[25%]" /> {/* Team column */}
+                      <col className="w-[35%]" /> {/* Event column */}
+                      <col className="w-[15%]" /> {/* Time column */}
+                      <col className="w-[25%]" /> {/* Location column */}
+                    </colgroup>
                     <thead>
                       <tr className="border-b border-gray-200">
-                        <th className="py-3 px-6 text-left text-sm font-semibold text-gray-600">Team</th>
-                        <th className="py-3 px-6 text-left text-sm font-semibold text-gray-600">Event</th>
-                        <th className="py-3 px-6 text-left text-sm font-semibold text-gray-600">Time</th>
-                        <th className="py-3 px-6 text-left text-sm font-semibold text-gray-600">Location</th>
+                        <th className="py-3 px-6 text-left text-sm font-semibold text-gray-600 whitespace-nowrap">Team</th>
+                        <th className="py-3 px-6 text-left text-sm font-semibold text-gray-600 whitespace-nowrap">Event</th>
+                        <th className="py-3 px-6 text-left text-sm font-semibold text-gray-600 whitespace-nowrap">Time</th>
+                        <th className="py-3 px-6 text-left text-sm font-semibold text-gray-600 whitespace-nowrap">Location</th>
                       </tr>
                     </thead>
                     <tbody>
