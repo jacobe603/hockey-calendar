@@ -54,56 +54,120 @@ const EventRow = ({ event, rosterUrl }) => {
   );
 };
 
+function isValidEvent(event) {
+  const requiredFields = ['date', 'time', 'eventType', 'sex', 'age', 'team', 'location', 'id'];
+  return requiredFields.every(field => {
+    const hasField = event.hasOwnProperty(field) && event[field] !== null && event[field] !== undefined;
+    if (!hasField) {
+      console.warn(`Event missing ${field}:`, event);
+    }
+    return hasField;
+  });
+}
+
 async function fetchEvents() {
   try {
-    // Check local storage first
+    // Check localStorage first
     const cachedData = localStorage.getItem('hockeyEvents');
     const cacheTime = localStorage.getItem('hockeyEventsTime');
     const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-    // If we have cached data and it's not too old, use it
+    // Use cached data if it's fresh enough
     if (cachedData && cacheTime) {
       const age = Date.now() - parseInt(cacheTime);
       if (age < CACHE_DURATION) {
-        console.log('Using cached data from localStorage');
-        return JSON.parse(cachedData);
+        const parsedData = JSON.parse(cachedData);
+        // Validate cached data
+        const validData = parsedData.filter(isValidEvent);
+        if (validData.length === parsedData.length) {
+          console.log('Using valid cached data');
+          return validData;
+        }
+        console.log('Cached data invalid, fetching fresh data');
+      } else {
+        console.log('Cache expired, fetching fresh data');
       }
-      console.log('Cache expired, fetching fresh data');
     }
 
-    // If we get here, either no cache or cache is old
-    console.log('Fetching fresh data from API');
+    // Fetch fresh data
+    console.log('Fetching from API...');
     const response = await fetch('https://hockey-calendar.onrender.com/api/events');
     if (!response.ok) {
-      throw new Error('Failed to fetch events');
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
 
-    // Update cache
+    // Validate and sort the fresh data
+    const validData = data.filter(isValidEvent);
+
+    if (validData.length !== data.length) {
+      console.warn(`Filtered out ${data.length - validData.length} invalid events`);
+    }
+
+    // Sort the data
+    validData.sort((a, b) => {
+      // First sort by date
+      const dateCompare = a.date.localeCompare(b.date);
+      if (dateCompare !== 0) return dateCompare;
+      
+      // Then sort by time
+      const timeToMinutes = (timeStr) => {
+        const [time, period] = timeStr.split(' ');
+        let [hours, minutes] = time.split(':').map(Number);
+        if (period === 'PM' && hours !== 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
+        return hours * 60 + minutes;
+      };
+      
+      return timeToMinutes(a.time) - timeToMinutes(b.time);
+    });
+
+    // Update cache with valid, sorted data
     try {
-      localStorage.setItem('hockeyEvents', JSON.stringify(data));
+      localStorage.setItem('hockeyEvents', JSON.stringify(validData));
       localStorage.setItem('hockeyEventsTime', Date.now().toString());
-      console.log('Cache updated');
+      console.log('Cache updated with', validData.length, 'events');
     } catch (storageError) {
       // If localStorage is full, clear it and try again
       console.warn('Storage error, clearing cache and retrying:', storageError);
       localStorage.clear();
-      localStorage.setItem('hockeyEvents', JSON.stringify(data));
-      localStorage.setItem('hockeyEventsTime', Date.now().toString());
+      try {
+        localStorage.setItem('hockeyEvents', JSON.stringify(validData));
+        localStorage.setItem('hockeyEventsTime', Date.now().toString());
+      } catch (retryError) {
+        console.error('Failed to cache even after clearing:', retryError);
+      }
     }
 
-    return data;
+    return validData;
+
   } catch (error) {
-    console.error('Error fetching events:', error);
-    // Return cached data on error if available
-    const cachedData = localStorage.getItem('hockeyEvents');
-    if (cachedData) {
-      console.log('Error occurred, using cached data');
-      return JSON.parse(cachedData);
+    console.error('Error fetching or processing events:', error);
+    
+    // Try to use cached data as fallback
+    try {
+      const cachedData = localStorage.getItem('hockeyEvents');
+      if (cachedData) {
+        console.log('Error occurred, falling back to cached data');
+        const parsedData = JSON.parse(cachedData);
+        return parsedData.filter(isValidEvent);
+      }
+    } catch (cacheError) {
+      console.error('Failed to use cached data:', cacheError);
     }
-    return [];
+    
+    return []; // Return empty array if all else fails
   }
 }
+
+function timeToMinutes(timeStr) {
+  const [time, period] = timeStr.split(' ');
+  let [hours, minutes] = time.split(':').map(Number);
+  if (period === 'PM' && hours !== 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+  return hours * 60 + minutes;
+}
+
 
 function formatEventDate(dateString) {
   const [year, month, day] = dateString.split('-');
@@ -214,53 +278,59 @@ export default function Home() {
     };
   }, [events]);
 
-  const filteredEvents = useMemo(() => {
-    return events.filter(event => {
-      // Get the start of yesterday
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      
-      const eventDate = new Date(event.date);
-      eventDate.setHours(0, 0, 0, 0);
-  
-      // Filter past events, but include yesterday
-      if (!showPastEvents && eventDate < yesterday) {
-        return false;
-      }
-  
-      // Apply other filters
-      const matchEventType = filters.eventType === 'All' || event.eventType === filters.eventType;
-      const matchSex = filters.sex === 'All' || event.sex === filters.sex;
-      const matchAge = filters.age === 'All' || event.age === filters.age;
-      const matchTeam = filters.team === 'All' || event.team.includes(filters.team);
-      const matchLocation = filters.location === 'All' || event.location === filters.location;
-      
-      return matchEventType && matchSex && matchAge && matchTeam && matchLocation;
-    });
-  }, [events, filters, showPastEvents]);
+    // Update the filteredEvents and groupedEvents logic in your component
+    const filteredEvents = useMemo(() => {
+      // First filter the events
+      return events.filter(event => {
+        // Get start of yesterday
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        const eventDate = new Date(event.date);
+        eventDate.setHours(0, 0, 0, 0);
 
-  const groupedEvents = useMemo(() => {
-    const timeToMinutes = (timeStr) => {
-      const [time, period] = timeStr.split(' ');
-      let [hours, minutes] = time.split(':').map(Number);
-      if (period === 'PM' && hours !== 12) hours += 12;
-      if (period === 'AM' && hours === 12) hours = 0;
-      return hours * 60 + minutes;
-    };
+        // Filter past events, but include yesterday
+        if (!showPastEvents && eventDate < yesterday) {
+          return false;
+        }
+
+        // Apply other filters
+        const matchEventType = filters.eventType === 'All' || event.eventType === filters.eventType;
+        const matchSex = filters.sex === 'All' || event.sex === filters.sex;
+        const matchAge = filters.age === 'All' || event.age === filters.age;
+        const matchTeam = filters.team === 'All' || event.team.includes(filters.team);
+        const matchLocation = filters.location === 'All' || event.location === filters.location;
+        
+        return matchEventType && matchSex && matchAge && matchTeam && matchLocation;
+      }).sort((a, b) => {
+        // First sort by date
+        const dateCompare = a.date.localeCompare(b.date);
+        if (dateCompare !== 0) return dateCompare;
+        // Then sort by time
+        return timeToMinutes(a.time) - timeToMinutes(b.time);
+      });
+    }, [events, filters, showPastEvents]);
+
+const groupedEvents = useMemo(() => {
+  // Group events by date while maintaining sort order
+  const groups = {};
+  for (const event of filteredEvents) {
+    if (!groups[event.date]) {
+      groups[event.date] = [];
+    }
+    groups[event.date].push(event);
+  }
   
-    return filteredEvents.reduce((acc, event) => {
-      const date = event.date;
-      if (!acc[date]) {
-        acc[date] = [];
-      }
-      acc[date].push(event);
-      // Sort events within each day by time
-      acc[date].sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
-      return acc;
-    }, {});
-  }, [filteredEvents]);
+  // Sort events within each group by time
+  for (const date in groups) {
+    groups[date].sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
+  }
+  
+  return groups;
+}, [filteredEvents]);
+  
 
   const getRosterUrl = (teamName) => {
     const teamConfig = TEAM_CONFIG.find(config => 
