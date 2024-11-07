@@ -56,14 +56,51 @@ const EventRow = ({ event, rosterUrl }) => {
 
 async function fetchEvents() {
   try {
+    // Check local storage first
+    const cachedData = localStorage.getItem('hockeyEvents');
+    const cacheTime = localStorage.getItem('hockeyEventsTime');
+    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+    // If we have cached data and it's not too old, use it
+    if (cachedData && cacheTime) {
+      const age = Date.now() - parseInt(cacheTime);
+      if (age < CACHE_DURATION) {
+        console.log('Using cached data from localStorage');
+        return JSON.parse(cachedData);
+      }
+      console.log('Cache expired, fetching fresh data');
+    }
+
+    // If we get here, either no cache or cache is old
+    console.log('Fetching fresh data from API');
     const response = await fetch('https://hockey-calendar.onrender.com/api/events');
     if (!response.ok) {
       throw new Error('Failed to fetch events');
     }
     const data = await response.json();
+
+    // Update cache
+    try {
+      localStorage.setItem('hockeyEvents', JSON.stringify(data));
+      localStorage.setItem('hockeyEventsTime', Date.now().toString());
+      console.log('Cache updated');
+    } catch (storageError) {
+      // If localStorage is full, clear it and try again
+      console.warn('Storage error, clearing cache and retrying:', storageError);
+      localStorage.clear();
+      localStorage.setItem('hockeyEvents', JSON.stringify(data));
+      localStorage.setItem('hockeyEventsTime', Date.now().toString());
+    }
+
     return data;
   } catch (error) {
     console.error('Error fetching events:', error);
+    // Return cached data on error if available
+    const cachedData = localStorage.getItem('hockeyEvents');
+    if (cachedData) {
+      console.log('Error occurred, using cached data');
+      return JSON.parse(cachedData);
+    }
     return [];
   }
 }
@@ -126,6 +163,18 @@ export default function Home() {
     async function loadEvents() {
       setLoading(true);
       try {
+        // Clear old cache on component mount
+        const cacheTime = localStorage.getItem('hockeyEventsTime');
+        if (cacheTime) {
+          const age = Date.now() - parseInt(cacheTime);
+          // Clear cache if it's older than a day
+          if (age > 24 * 60 * 60 * 1000) {
+            console.log('Clearing old cache');
+            localStorage.removeItem('hockeyEvents');
+            localStorage.removeItem('hockeyEventsTime');
+          }
+        }
+  
         const data = await fetchEvents();
         setEvents(data);
       } catch (error) {
@@ -134,9 +183,10 @@ export default function Home() {
         setLoading(false);
       }
     }
-
+  
     loadEvents();
   }, []);
+  
 
   const filterOptions = useMemo(() => {
     // Get unique values while preserving order for key categories

@@ -3,28 +3,31 @@ import cors from 'cors';
 import fetch from 'node-fetch';
 import ical from 'node-ical';
 
-const app = express();  // Define express app first
+const app = express();
 
 // CORS configuration
 const ALLOWED_ORIGINS = [
   'http://localhost:3000',
-  'https://hockey-calendar.vercel.app',  // Add your Vercel domain
-  'https://hockey-calendar.onrender.com'
+  'https://hockey-calendar.vercel.app'
 ];
 
-// Apply CORS middleware
 app.use(cors({
   origin: function(origin, callback) {
-    // allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (ALLOWED_ORIGINS.indexOf(origin) === -1) {
-      return callback(new Error('CORS not allowed'), false);
+    if (!origin || ALLOWED_ORIGINS.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
     }
-    return callback(null, true);
   },
   credentials: true
 }));
+
+// Add cache object here
+const cache = {
+  data: null,
+  lastFetched: null,
+  CACHE_DURATION: 5 * 60 * 1000 // 5 minutes in milliseconds
+};
 
 // Team configuration
 const TEAM_CONFIG = [
@@ -42,7 +45,6 @@ const TEAM_CONFIG = [
 
 function getEventType(description) {
   if (!description) return 'Unknown';
-  // Check for game vs practice in the URL
   if (description.includes('sportsengine%3A%2F%2Fgame')) {
     return 'Game';
   } else if (description.includes('sportsengine%3A%2F%2Fevent')) {
@@ -92,11 +94,7 @@ function processICalEvents(events, teamInfo) {
         hour12: true
       });
       
-      // Create a unique ID
       const uniqueId = `${uid}_${dateStr}_${timeStr}_${teamInfo.team}`.replace(/\s+/g, '_');
-      
-      // Determine event type
-      const eventType = getEventType(event.description);
       
       processedEvents.push({
         id: uniqueId,
@@ -108,7 +106,7 @@ function processICalEvents(events, teamInfo) {
         summary: event.summary,
         location: event.location || 'TBD',
         description: event.description || '',
-        eventType: eventType,
+        eventType: getEventType(event.description),
         debug: {
           originalISOString: originalStart.toISOString(),
           originalTimezone: originalStart.tz || 'UTC',
@@ -123,8 +121,27 @@ function processICalEvents(events, teamInfo) {
   return processedEvents;
 }
 
+// Helper function for time sorting
+function timeToMinutes(timeStr) {
+  const [time, period] = timeStr.split(' ');
+  let [hours, minutes] = time.split(':').map(Number);
+  if (period === 'PM' && hours !== 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+  return hours * 60 + minutes;
+}
+
+// Replace your existing endpoint with this cached version
 app.get('/api/events', async (req, res) => {
   try {
+    // Check if we have valid cached data
+    if (cache.data && cache.lastFetched && 
+        (Date.now() - cache.lastFetched) < cache.CACHE_DURATION) {
+      console.log('Serving cached data');
+      return res.json(cache.data);
+    }
+
+    console.log('Fetching fresh data');
+    // If no cache or expired, fetch fresh data
     const allEvents = [];
     for (const team of TEAM_CONFIG) {
       const icalEvents = await fetchCalendarData(team.icalUrl);
@@ -134,16 +151,25 @@ app.get('/api/events', async (req, res) => {
       }
     }
 
-    // Sort events by date and time
+    // Sort events
     allEvents.sort((a, b) => {
       const dateCompare = a.date.localeCompare(b.date);
-      if (dateCompare !== 0) return dateCompare;
-      return timeToMinutes(a.time) - timeToMinutes(b.time);
+      if (dateCompare !== 0) return timeToMinutes(a.time) - timeToMinutes(b.time);
+      return 0;
     });
+
+    // Update cache
+    cache.data = allEvents;
+    cache.lastFetched = Date.now();
 
     res.json(allEvents);
   } catch (error) {
     console.error('Error fetching events:', error);
+    // If error occurs but we have cached data, return it
+    if (cache.data) {
+      console.log('Error occurred, serving cached data');
+      return res.json(cache.data);
+    }
     res.status(500).json({ error: 'Failed to fetch calendar data' });
   }
 });
@@ -152,11 +178,3 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-const timeToMinutes = (timeStr) => {
-  const [time, period] = timeStr.split(' ');
-  let [hours, minutes] = time.split(':').map(Number);
-  if (period === 'PM' && hours !== 12) hours += 12;
-  if (period === 'AM' && hours === 12) hours = 0;
-  return hours * 60 + minutes;
-};
