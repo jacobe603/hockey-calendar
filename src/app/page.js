@@ -70,7 +70,7 @@ async function fetchEvents() {
     // Check localStorage first
     const cachedData = localStorage.getItem('hockeyEvents');
     const cacheTime = localStorage.getItem('hockeyEventsTime');
-    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+    const CACHE_DURATION = 30 * 60 * 1000; // 5 minutes
 
     // Use cached data if it's fresh enough
     if (cachedData && cacheTime) {
