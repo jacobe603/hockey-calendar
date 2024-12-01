@@ -14,8 +14,8 @@ const TEAM_CONFIG = [
   { sex: 'Boys', age: 'Peewee', team: 'B1 Gray', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551066', rosterUrl: 'https://www.fargohockey.org/roster/show/8551066?subseason=926726' },
   { sex: 'Boys', age: 'Peewee', team: 'B1 Navy', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551067', rosterUrl: 'https://www.fargohockey.org/roster/show/8551067?subseason=926726' },
   { sex: 'Girls', age: '10U', team: 'A', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8550992', rosterUrl: 'https://www.fargohockey.org/roster/show/8550992?subseason=926726' },
-  { sex: 'Girls', age: '10U Blue', team: 'B', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8550993', rosterUrl: 'https://www.fargohockey.org/roster/show/8550993?subseason=926726' },
-  { sex: 'Girls', age: '10U Gray', team: 'B', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8550994', rosterUrl: 'https://www.fargohockey.org/roster/show/8550994?subseason=926726' },
+  { sex: 'Girls', age: '10U', team: 'B Blue', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8550993', rosterUrl: 'https://www.fargohockey.org/roster/show/8550993?subseason=926726' },
+  { sex: 'Girls', age: '10U', team: 'B Gray', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8550994', rosterUrl: 'https://www.fargohockey.org/roster/show/8550994?subseason=926726' },
   { sex: 'Girls', age: '12U', team: 'A', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8550998', rosterUrl: 'https://www.fargohockey.org/roster/show/8550998?subseason=926726' },
   { sex: 'Girls', age: '15U', team: 'A', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551002', rosterUrl: 'https://www.fargohockey.org/roster/show/8551002?subseason=926726' }
 ];
