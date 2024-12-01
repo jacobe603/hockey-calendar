@@ -13,6 +13,7 @@ const TEAM_CONFIG = [
   { sex: 'Boys', age: 'Peewee', team: 'A', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551058', rosterUrl: 'https://www.fargohockey.org/roster/show/8551058?subseason=926726' },
   { sex: 'Boys', age: 'Peewee', team: 'B1 Gray', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551066', rosterUrl: 'https://www.fargohockey.org/roster/show/8551066?subseason=926726' },
   { sex: 'Boys', age: 'Peewee', team: 'B1 Navy', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551067', rosterUrl: 'https://www.fargohockey.org/roster/show/8551067?subseason=926726' },
+  { sex: 'Girls', age: '10U', team: 'A', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8550992', rosterUrl: 'https://www.fargohockey.org/roster/show/8550992?subseason=926726' },
   { sex: 'Girls', age: '12U', team: 'A', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8550998', rosterUrl: 'https://www.fargohockey.org/roster/show/8550998?subseason=926726' },
   { sex: 'Girls', age: '15U', team: 'A', icalUrl: 'webcal://www.fargohockey.org/ical_feed?tags=8551002', rosterUrl: 'https://www.fargohockey.org/roster/show/8551002?subseason=926726' }
 ];
@@ -258,7 +259,7 @@ export default function Home() {
     const sexOptions = ['All', ...new Set(TEAM_CONFIG.map(team => team.sex))];
     
     // Custom sort function for age groups
-    const ageOrder = ['Peewee', '12U', 'Bantam', '15U'];
+    const ageOrder = ['Peewee','Bantam','10U','12U','15U'];
     const ageOptions = ['All', ...new Set(TEAM_CONFIG.map(team => team.age))]
       .sort((a, b) => {
         if (a === 'All') return -1;
