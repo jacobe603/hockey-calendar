@@ -26,7 +26,7 @@ app.use(cors({
 const cache = {
   data: null,
   lastFetched: null,
-  CACHE_DURATION: 5 * 60 * 1000 // 5 minutes in milliseconds
+  CACHE_DURATION: 30 * 60 * 1000 // 30 minutes in milliseconds
 };
 
 // Team configuration
